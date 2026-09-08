@@ -4,9 +4,9 @@ import { defineConfig, loadEnv } from 'vite'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
-  return {
+return {
     plugins: [react()],
-    envPrefix: ['VITE_', 'DFO_'],
+    envPrefix: ['VITE_', 'BRIDGE_'],
     server: {
       proxy: {
         '/df': {

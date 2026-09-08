@@ -33,7 +33,7 @@ function Rankings() {
   const [searchParams] = useSearchParams()
   const [servers, setServers] = useState<Server[]>([])
   const [jobs, setJobs] = useState<Job[]>([])
-  const [serverId, setServerId] = useState('all')
+  const [serverId, setServerId] = useState('cain')
   const [jobId, setJobId] = useState(
     () => searchParams.get('job') ?? '',
   )
@@ -169,7 +169,6 @@ function Rankings() {
             value={serverId}
             onChange={(e) => setServerId(e.target.value)}
           >
-            <option value="all">{t('all')}</option>
             {servers.map((server) => (
               <option key={server.serverId} value={server.serverId}>
                 {server.serverName}

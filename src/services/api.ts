@@ -27,6 +27,8 @@ import type {
 const BASE_DIRECT_API = 'https://api.dfoneople.com'
 const DIRECT_KEY = import.meta.env.DFO_API_KEY as string | undefined
 
+const BRIDGE_URL = (import.meta.env.BRIDGE_URL as string | undefined) || ''
+
 function httpStatus(err: unknown): number {
   if (
     err &&
@@ -42,7 +44,7 @@ function httpStatus(err: unknown): number {
 
 async function apiFetch<T>(path: string): Promise<T> {
   try {
-    const { data } = await axios.get<T>(`/df${path}`)
+    const { data } = await axios.get<T>(`${BRIDGE_URL}/df${path}`)
     return data
   } catch (proxyErr) {
     const proxyStatus = httpStatus(proxyErr)

@@ -7,7 +7,7 @@ import { useLanguage } from '../i18n/useLanguage'
 function CharacterSearch() {
   const { t } = useLanguage()
   const [servers, setServers] = useState<Server[]>([])
-  const [serverId, setServerId] = useState('all')
+  const [serverId, setServerId] = useState('cain')
   const [characterName, setCharacterName] = useState('')
   const [results, setResults] = useState<Character[]>([])
   const [query, setQuery] = useState('')
@@ -65,7 +65,6 @@ function CharacterSearch() {
           value={serverId}
           onChange={(e) => setServerId(e.target.value)}
         >
-          <option value="all">{t('all')}</option>
           {servers.map((server) => (
             <option key={server.serverId} value={server.serverId}>
               {server.serverName}

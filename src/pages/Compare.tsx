@@ -34,7 +34,7 @@ function CompareSlot({
   const { t } = useLanguage()
   const { entries } = useWatchlist()
   const [servers, setServers] = useState<Server[]>([])
-  const [serverId, setServerId] = useState('all')
+  const [serverId, setServerId] = useState('cain')
   const [name, setName] = useState('')
   const [results, setResults] = useState<Character[]>([])
   const [searched, setSearched] = useState(false)
@@ -81,7 +81,6 @@ function CompareSlot({
             <label>
               {t('server')}
               <select value={serverId} onChange={(e) => setServerId(e.target.value)}>
-                <option value="all">{t('all')}</option>
                 {servers.map((server) => (
                   <option key={server.serverId} value={server.serverId}>
                     {server.serverName}
