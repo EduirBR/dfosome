@@ -25,7 +25,7 @@ import type {
 } from '../types/dfo'
 
 const BASE_DIRECT_API = 'https://api.dfoneople.com'
-const DIRECT_KEY = import.meta.env.VITE_DFO_API_KEY as string | undefined
+const DIRECT_KEY = import.meta.env.DFO_API_KEY as string | undefined
 
 function httpStatus(err: unknown): number {
   if (
