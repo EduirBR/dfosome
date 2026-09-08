@@ -28,6 +28,7 @@ async function getRows<T>(path: string): Promise<T[]> {
     path,
   )
   if (body.error) {
+    console.error(`[api] ${path}: DFO API error`, body.error)
     throw new Error(`DFO API error: ${body.error.message}`)
   }
   return body.rows ?? []
@@ -36,6 +37,7 @@ async function getRows<T>(path: string): Promise<T[]> {
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`/df${path}`)
   if (!res.ok) {
+    console.error(`[api] ${path}: HTTP ${res.status} ${res.statusText}`)
     throw new Error(`DFO API error ${res.status}: ${res.statusText}`)
   }
   return (await res.json()) as T
@@ -44,15 +46,19 @@ async function getJson<T>(path: string): Promise<T> {
 async function getCached<T>(cacheKey: string, path: string): Promise<T[]> {
   try {
     const raw = sessionStorage.getItem(cacheKey)
-    if (raw) return JSON.parse(raw) as T[]
-  } catch {
-    // ignore storage errors
+    if (raw) {
+      console.log(`[api] cache hit: ${cacheKey} (${path})`)
+      return JSON.parse(raw) as T[]
+    }
+  } catch (err) {
+    console.error(`[api] cache read error: ${cacheKey}`, err)
   }
+  console.log(`[api] fetch ${path}`)
   const data = await getRows<T>(path)
   try {
     sessionStorage.setItem(cacheKey, JSON.stringify(data))
-  } catch {
-    // ignore storage errors
+  } catch (err) {
+    console.error(`[api] cache write error: ${cacheKey}`, err)
   }
   return data
 }
