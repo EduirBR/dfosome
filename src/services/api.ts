@@ -1,3 +1,4 @@
+import axios from 'axios'
 import type {
   AvatarPayload,
   BuffAvatarPayload,
@@ -24,26 +25,44 @@ import type {
 } from '../types/dfo'
 
 const BASE_DIRECT_API = 'https://api.dfoneople.com'
+const DIRECT_KEY = import.meta.env.VITE_DFO_API_KEY as string | undefined
 
-async function getDirect<T>(path: string, proxyStatus?: number): Promise<T | null> {
-  const apiKey = import.meta.env.VITE_DFO_API_KEY as string | undefined
-  if (!apiKey) return null
+function httpStatus(err: unknown): number {
+  if (
+    err &&
+    typeof err === 'object' &&
+    'response' in err &&
+    (err as { response?: { status?: unknown } }).response
+  ) {
+    const status = (err as { response: { status?: unknown } }).response.status
+    if (typeof status === 'number') return status
+  }
+  return 0
+}
+
+async function apiFetch<T>(path: string): Promise<T> {
   try {
-    const res = await fetch(`${BASE_DIRECT_API}/df${path}`, {
-      headers: { apikey: apiKey },
-    })
-    if (!res.ok) return null
-    if (proxyStatus) {
-      console.warn(`[api] ${path}: proxy HTTP ${proxyStatus}, usando Neople directo`)
+    const { data } = await axios.get<T>(`/df${path}`)
+    return data
+  } catch (proxyErr) {
+    if (DIRECT_KEY) {
+      try {
+        const { data } = await axios.get<T>(`${BASE_DIRECT_API}/df${path}`, {
+          headers: { apikey: DIRECT_KEY },
+        })
+        console.warn(`[api] ${path}: proxy fallido, usando Neople directo`)
+        return data
+      } catch (directErr) {
+        console.error(`[api] ${path}: fallback directo también falló`)
+        throw directErr
+      }
     }
-    return (await res.json()) as T
-  } catch {
-    return null
+    throw proxyErr
   }
 }
 
 async function getRows<T>(path: string): Promise<T[]> {
-  const body = await getJson<{ rows?: T[]; error?: { code: string; message: string } }>(
+  const body = await apiFetch<{ rows?: T[]; error?: { code: string; message: string } }>(
     path,
   )
   if (body.error) {
@@ -54,14 +73,13 @@ async function getRows<T>(path: string): Promise<T[]> {
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`/df${path}`)
-  if (!res.ok) {
-    const direct = await getDirect<T>(path, res.status)
-    if (direct) return direct
-    console.error(`[api] ${path}: HTTP ${res.status} ${res.statusText}`)
-    throw new Error(`DFO API error ${res.status}: ${res.statusText}`)
+  try {
+    return await apiFetch<T>(path)
+  } catch (err) {
+    const status = httpStatus(err)
+    console.error(`[api] ${path}: HTTP ${status || 'red error'}`)
+    throw new Error(`DFO API error ${status}: ${path}`)
   }
-  return (await res.json()) as T
 }
 
 async function getCached<T>(cacheKey: string, path: string): Promise<T[]> {
