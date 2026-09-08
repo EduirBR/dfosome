@@ -45,19 +45,33 @@ async function apiFetch<T>(path: string): Promise<T> {
     const { data } = await axios.get<T>(`/df${path}`)
     return data
   } catch (proxyErr) {
+    const proxyStatus = httpStatus(proxyErr)
     if (DIRECT_KEY) {
       try {
         const { data } = await axios.get<T>(`${BASE_DIRECT_API}/df${path}`, {
           headers: { apikey: DIRECT_KEY },
         })
-        console.warn(`[api] ${path}: proxy fallido, usando Neople directo`)
+        console.warn(`[api] ${path}: proxy HTTP ${proxyStatus || 'red'}, usando Neople directo`)
         return data
       } catch (directErr) {
-        console.error(`[api] ${path}: fallback directo también falló`)
-        throw directErr
+        console.error(
+          `[api] ${path}: proxy HTTP ${proxyStatus || 'red'}, directo HTTP ${httpStatus(directErr) || 'red'}`,
+        )
+        throw new Error(
+          `DFO API error ${httpStatus(directErr) || 'red'}: ${path} (proxy y directo fallaron)`,
+        )
       }
     }
-    throw proxyErr
+    if (proxyStatus) {
+      console.error(
+        `[api] ${path}: HTTP ${proxyStatus} (no hay VITE_DFO_API_KEY para el fallback)`,
+      )
+      throw new Error(
+        `DFO API error ${proxyStatus}: ${path} (sin VITE_DFO_API_KEY para fallback)`,
+      )
+    }
+    console.error(`[api] ${path}: error de red al contactar el proxy`)
+    throw new Error(`DFO API error de red: ${path} (proxy no responde)`)
   }
 }
 
@@ -73,13 +87,7 @@ async function getRows<T>(path: string): Promise<T[]> {
 }
 
 async function getJson<T>(path: string): Promise<T> {
-  try {
-    return await apiFetch<T>(path)
-  } catch (err) {
-    const status = httpStatus(err)
-    console.error(`[api] ${path}: HTTP ${status || 'red error'}`)
-    throw new Error(`DFO API error ${status}: ${path}`)
-  }
+  return apiFetch<T>(path)
 }
 
 async function getCached<T>(cacheKey: string, path: string): Promise<T[]> {
