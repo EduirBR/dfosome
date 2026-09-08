@@ -23,6 +23,25 @@ import type {
   SkillStylePayload,
 } from '../types/dfo'
 
+const BASE_DIRECT_API = 'https://api.dfoneople.com'
+
+async function getDirect<T>(path: string, proxyStatus?: number): Promise<T | null> {
+  const apiKey = import.meta.env.VITE_DFO_API_KEY as string | undefined
+  if (!apiKey) return null
+  try {
+    const res = await fetch(`${BASE_DIRECT_API}/df${path}`, {
+      headers: { apikey: apiKey },
+    })
+    if (!res.ok) return null
+    if (proxyStatus) {
+      console.warn(`[api] ${path}: proxy HTTP ${proxyStatus}, usando Neople directo`)
+    }
+    return (await res.json()) as T
+  } catch {
+    return null
+  }
+}
+
 async function getRows<T>(path: string): Promise<T[]> {
   const body = await getJson<{ rows?: T[]; error?: { code: string; message: string } }>(
     path,
@@ -37,6 +56,8 @@ async function getRows<T>(path: string): Promise<T[]> {
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`/df${path}`)
   if (!res.ok) {
+    const direct = await getDirect<T>(path, res.status)
+    if (direct) return direct
     console.error(`[api] ${path}: HTTP ${res.status} ${res.statusText}`)
     throw new Error(`DFO API error ${res.status}: ${res.statusText}`)
   }
@@ -47,8 +68,11 @@ async function getCached<T>(cacheKey: string, path: string): Promise<T[]> {
   try {
     const raw = sessionStorage.getItem(cacheKey)
     if (raw) {
-      console.log(`[api] cache hit: ${cacheKey} (${path})`)
-      return JSON.parse(raw) as T[]
+      const cached = JSON.parse(raw) as T[]
+      if (cached.length > 0) {
+        console.log(`[api] cache hit: ${cacheKey} (${path})`)
+        return cached
+      }
     }
   } catch (err) {
     console.error(`[api] cache read error: ${cacheKey}`, err)
